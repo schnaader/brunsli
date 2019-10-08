@@ -7,11 +7,6 @@ local_repository(
 
 # IT WOULD BE FOOLISH TO USE COMPUTERS TO AUTOMATE REPETITIVE TASKS:
 # ENLIST EVERY USED TRANSITIVE DEPENDENCY MANUALLY!
-local_repository(
-    name = "brotli",
-    path = "../third_party/brotli",
-)
-
 maven_jar(
     name = "junit_junit",
     artifact = "junit:junit:4.12",

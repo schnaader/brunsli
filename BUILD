@@ -122,7 +122,6 @@ cc_library(
     copts = STRICT_C_OPTIONS,
     deps = [
         ":brunslicommon",
-        "@brotli//:brotlidec",
     ],
 )
 
@@ -133,7 +132,6 @@ cc_library(
     copts = STRICT_C_OPTIONS,
     deps = [
         ":brunslicommon",
-        "@brotli//:brotlienc",
     ],
 )
 

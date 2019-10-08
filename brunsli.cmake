@@ -58,7 +58,6 @@ add_library(brunslidec-static STATIC
   ${BRUNSLI_DEC_HEADERS}
 )
 target_link_libraries(brunslidec-static PRIVATE
-  brotlidec-static
   brunslicommon-static
 )
 
@@ -67,7 +66,6 @@ add_library(brunslienc-static STATIC
   ${BRUNSLI_ENC_HEADERS}
 )
 target_link_libraries(brunslienc-static PRIVATE
-  brotlienc-static
   brunslicommon-static
 )
 
