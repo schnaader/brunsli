@@ -12,7 +12,6 @@
 #include <string>
 #include <vector>
 
-#include <brotli/decode.h>
 #include "../common/constants.h"
 #include "../common/context.h"
 #include "../common/lehmer_code.h"
@@ -921,53 +920,6 @@ BrunsliStatus DecodeHeader(const uint8_t* data, const size_t len, size_t* pos,
   return BRUNSLI_OK;
 }
 
-// Decompress Brotli stream and discard output.
-// Returns true IFF stream is valid, and contains exactly |expected_output_size|
-// bytes.
-bool ValidateBrotliStream(const uint8_t* data, const size_t len,
-                          const size_t expected_output_size) {
-  BrotliDecoderState* s =
-      BrotliDecoderCreateInstance(nullptr, nullptr, nullptr);
-  if (s == nullptr) {
-    return false;
-  }
-
-  size_t available_in = len;
-  const uint8_t* next_in = data;
-  size_t available_out = 0;
-  BrotliDecoderResult result;
-  bool sane = true;
-  size_t remaining_expected_output = expected_output_size;
-
-  while (true) {
-    result = BrotliDecoderDecompressStream(s,
-        &available_in, &next_in, &available_out, nullptr, nullptr);
-    size_t output_size = 0;
-    BrotliDecoderTakeOutput(s, &output_size);
-    if (remaining_expected_output < output_size) {
-      sane = false;
-      break;
-    } else {
-      remaining_expected_output -= output_size;
-    }
-    if (result == BROTLI_DECODER_RESULT_SUCCESS) break;
-    if (result == BROTLI_DECODER_RESULT_NEEDS_MORE_INPUT ||
-        result == BROTLI_DECODER_RESULT_ERROR) {
-      sane = false;
-      break;
-    }
-  }
-  BrotliDecoderDestroyInstance(s);
-
-  if (available_in != 0) {
-    sane = false;
-  } else if (remaining_expected_output != 0) {
-    sane = false;
-  }
-
-  return sane;
-}
-
 bool DecodeMetaDataSection(const uint8_t* data, const size_t len,
                            JPEGData* jpg) {
   if (len == 0) {
@@ -983,30 +935,8 @@ bool DecodeMetaDataSection(const uint8_t* data, const size_t len,
   }
   size_t compressed_metadata_size = len - pos;
 
-  // Make additional check if compressed data is suspicious,
-  // i.e. expected output is larger than 1GiB, or compression ratio is larger
-  // than 4K.
-  // This will protect from broken streams that would require allocating
-  // gigantic chunk of memory.
-  // TODO: make AddMetaData more stream-friendly; in this case temporary
-  //               "metadata" string does not have to be allocated at all.
-  bool is_suspicious = (metadata_size >= (1u << 30)) ||
-                       ((metadata_size >> 12) > compressed_metadata_size);
-  if (is_suspicious) {
-    bool is_valid_brotli_stream = ValidateBrotliStream(
-        &data[pos], compressed_metadata_size, metadata_size);
-    if (!is_valid_brotli_stream) {
-      return false;
-    }
-  }
-
   std::string metadata(metadata_size, 0);
-  BrotliDecoderResult result = BrotliDecoderDecompress(
-      compressed_metadata_size, &data[pos], &metadata_size,
-      reinterpret_cast<uint8_t*>(&metadata[0]));
-  if (result != BROTLI_DECODER_RESULT_SUCCESS) {
-    return false;
-  }
+  memcpy(reinterpret_cast<uint8_t*>(&metadata[0]), &data[pos], compressed_metadata_size);
   if (!AddMetaData(metadata, jpg)) {
     return false;
   }

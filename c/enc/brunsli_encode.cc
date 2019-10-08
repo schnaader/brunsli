@@ -14,7 +14,6 @@
 #include <vector>
 #include <utility>
 
-#include <brotli/encode.h>
 #include "../common/constants.h"
 #include "../common/context.h"
 #include "../common/distributions.h"
@@ -32,8 +31,6 @@
 namespace brunsli {
 
 static const int kNumDirectCodes = 8;
-static const int kBrotliQuality = 6;
-static const int kBrotliWindowBits = 18;
 
 // Returns an upper bound on the encoded size of the jpeg internals section.
 size_t EstimateAuxDataSize(const JPEGData& jpg) {
@@ -1258,15 +1255,8 @@ bool EncodeMetaData(const JPEGData& jpg,
   size_t compressed_size = *len - pos;
   const uint8_t* metadata_ptr =
       reinterpret_cast<const uint8_t*>(metadata.data());
-  if (!BrotliEncoderCompress(kBrotliQuality, kBrotliWindowBits,
-                             BROTLI_DEFAULT_MODE, metadata.size(), metadata_ptr,
-                             &compressed_size, &data[pos])) {
-    BRUNSLI_LOG_ERROR() << "Brotli compression failed:"
-                        << " input size = " << metadata.size()
-                        << " pos = " << pos << " len = " << *len
-                        << BRUNSLI_ENDL();
-    return false;
-  }
+  memcpy(&data[pos], metadata_ptr, metadata.size());
+  compressed_size = metadata.size();
   pos += compressed_size;
   *len = pos;
   return true;
